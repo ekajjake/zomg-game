@@ -23,15 +23,19 @@ $(document).ready(function()
       var PLAYER_WIDTH = 10;
       var PLAYER_HEIGHT = 20;
       var PLAYER_SPEED = 5;
+      var BULLET_SIZE = 10;
+      var BULLET_SPEED = 15;
 
-      //GAME CHARACTERS
+      //GAME OBJECTS
       var zombies;
       var player;
+      var bullets;
 
       function init()
       {
         initPlayer();
         initZombies();
+        initBullets();
         if (typeof gameLoop != 'undefined') clearInterval(gameLoop);
         var gameloop = setInterval(paint, 30);
       }
@@ -47,6 +51,9 @@ $(document).ready(function()
         paintPlayer();
         paintZombies();
         moveZombies();
+        shootBullets();
+        paintBullets();
+        moveBullets();
         clearDeadZombies();
       }
 
@@ -56,7 +63,9 @@ $(document).ready(function()
         {
           player = {x: centerX,
                     y: centerY,
-                    dir: "up",
+                    shooting: false,
+                    shootDirX: 0,
+                    shootDirY: 1,
                     health: 100}
         }
       }
@@ -92,6 +101,10 @@ $(document).ready(function()
             //DOWN
             keys.d = true;
           }
+          if (key == "32")
+          {
+            player.shooting = true;
+          }
 
         });
 
@@ -118,6 +131,10 @@ $(document).ready(function()
             //DOWN
             keys.d = false;
           }
+          if (key == "32")
+          {
+            player.shooting = false;
+          }
 
         });
       }
@@ -126,21 +143,89 @@ $(document).ready(function()
       {
         if (keys.l)
         {
-          console.log("LEFT")
           player.x -= PLAYER_SPEED;
+          player.shootDirX = -1;
+          player.shootDirY = 0;
         }
         if (keys.r)
         {
           player.x += PLAYER_SPEED;
+          player.shootDirX = 1;
+          player.shootDirY = 0;
         }
         if (keys.u)
         {
           player.y -= PLAYER_SPEED;
+          //player.shootDirY = -1;
+          //player.shootDirX = 0;
         }
         if (keys.d)
         {
           player.y += PLAYER_SPEED;
+          //player.shootDirY = 1;
+          //player.shootDirX = 0;
         }
+      }
+
+      function initBullets()
+      {
+        if (typeof bullets === "undefined")
+        {
+          bullets = [];
+        }
+      }
+
+      function shootBullets()
+      {
+        if (player.shooting)
+        {
+          bullets.push({
+            x : player.x,
+            y : player.y,
+            xDir : player.shootDirX,
+            yDir : player.shootDirY,
+            hit : false
+          })
+        }
+      }
+
+      function moveBullets()
+      {
+        for (var i=0; i < bullets.length; i++)
+        {
+          bullets[i].x += BULLET_SPEED*bullets[i].xDir;
+          bullets[i].y += BULLET_SPEED*bullets[i].yDir;
+        }
+      }
+
+      function paintBullets()
+      {
+        for (var i=0; i < bullets.length; i++)
+        {
+          if (!bullets[i].hit)
+          {
+            ctx.fillStyle = "gray";
+            ctx.fillRect(bullets[i].x, bullets[i].y, BULLET_SIZE, BULLET_SIZE/3);
+          }
+        }
+      }
+
+      function cleanupBullets()
+      {
+        var old_bullets = bullets.slice(0);
+        bullets = [];
+        for (var i=0; i < old_zombies.length; i++)
+        {
+          if (!old_bullets[i].hit || outOfBounds(bullets[i]))
+          {
+            bullets.push(old_zombies[i]);
+          }
+        }
+      }
+
+      function outOfBounds(objIn)
+      {
+        return (objIn.x > w || objIn.y > h || objIn.x < 0 || objIn.y < 0);
       }
 
       function initZombies()
