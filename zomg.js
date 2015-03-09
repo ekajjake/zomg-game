@@ -19,12 +19,15 @@ $(document).ready(function()
       var AMT_ZOMBIES = 100;
       var MIN_ZOMBIE_SIZE = 10;
       var MAX_ZOMBIE_SIZE = 20;
+      var MAX_PLAYER_HEALTH = 100;
+      var MAX_ZOMBIE_HEALTH = MAX_PLAYER_HEALTH/2;
       var ZOMBIE_SPEED = 1;
       var PLAYER_WIDTH = 10;
       var PLAYER_HEIGHT = 20;
       var PLAYER_SPEED = 5;
-      var BULLET_SIZE = 10;
+      var BULLET_SIZE = 5;
       var BULLET_SPEED = 15;
+      var SPAWN_RADIUS = w/3;
 
       //GAME OBJECTS
       var zombies;
@@ -48,13 +51,15 @@ $(document).ready(function()
         ctx.fillRect(0,0,w,h);
         movePlayer();
         getInput();
-        paintPlayer();
         paintZombies();
         moveZombies();
         shootBullets();
+        collideBullets();
         paintBullets();
         moveBullets();
-        clearDeadZombies();
+        cleanUpBullets();
+        paintPlayer();
+        cleanUpZombies();
       }
 
       function initPlayer()
@@ -64,8 +69,8 @@ $(document).ready(function()
           player = {x: centerX,
                     y: centerY,
                     shooting: false,
-                    shootDirX: 0,
-                    shootDirY: 1,
+                    shootDirX: 1,
+                    shootDirY: 0,
                     health: 100}
         }
       }
@@ -175,13 +180,31 @@ $(document).ready(function()
         }
       }
 
+      function collideBullets()
+      {
+        for (var i=0; i < zombies.length; i++)
+        {
+          for (var j=0; j < bullets.length; j++)
+          {
+            if (((bullets[j].x + BULLET_SIZE/2) > zombies[i].x) ||
+                ((bullets[j].x + BULLET_SIZE/2) < zombies[i].x + zombies[i].size/2) &&
+                ((bullets[j].y + BULLET_SIZE/2) > zombies[i].y) ||
+                ((bullets[j].y + BULLET_SIZE/2) > zombies[i].y + zombies[i].size))
+            {
+              bullets[j].hit = true;
+              zombies[i].dead = true;
+            }
+          }
+        }
+      }
+
       function shootBullets()
       {
         if (player.shooting)
         {
           bullets.push({
-            x : player.x,
-            y : player.y,
+            x : ((player.x + PLAYER_WIDTH/2) - BULLET_SIZE/2),
+            y : (player.y + PLAYER_HEIGHT/2),
             xDir : player.shootDirX,
             yDir : player.shootDirY,
             hit : false
@@ -205,20 +228,20 @@ $(document).ready(function()
           if (!bullets[i].hit)
           {
             ctx.fillStyle = "gray";
-            ctx.fillRect(bullets[i].x, bullets[i].y, BULLET_SIZE, BULLET_SIZE/3);
+            ctx.fillRect(bullets[i].x, bullets[i].y, BULLET_SIZE, BULLET_SIZE);
           }
         }
       }
 
-      function cleanupBullets()
+      function cleanUpBullets()
       {
         var old_bullets = bullets.slice(0);
         bullets = [];
-        for (var i=0; i < old_zombies.length; i++)
+        for (var i=0; i < old_bullets.length; i++)
         {
-          if (!old_bullets[i].hit || outOfBounds(bullets[i]))
+          if (!old_bullets[i].hit || !outOfBounds(bullets[i]))
           {
-            bullets.push(old_zombies[i]);
+            bullets.push(old_bullets[i]);
           }
         }
       }
@@ -237,15 +260,51 @@ $(document).ready(function()
 
         for (var i=0; i < AMT_ZOMBIES; i++)
         {
-          var randomX = Math.random() * w;
-          var randomY = Math.random() * h;
-          var randomSize = (Math.random() * MAX_ZOMBIE_SIZE) + MIN_ZOMBIE_SIZE;
-
-          zombies.push({x : randomX,
-                        y : randomY,
-                        size : randomSize,
-                        dead : false})
+          buildZombie();
         }
+      }
+
+      function buildZombie()
+      {
+        var randomX = Math.random() * w;
+        var randomY = Math.random() * h;
+        var randomOffset = Math.floor(Math.random()*100);
+        var healthSizeSeed = Math.random();
+        var randomSize = (healthSizeSeed * MAX_ZOMBIE_SIZE) + MIN_ZOMBIE_SIZE;
+        var health = healthSizeSeed * MAX_ZOMBIE_HEALTH;
+
+        if (randomX < centerX + SPAWN_RADIUS &&
+          randomX > centerX - SPAWN_RADIUS)
+        {
+          if (randomOffset > 50)
+          {
+            randomX -= SPAWN_RADIUS;
+          }
+          else
+          {
+            randomX += SPAWN_RADIUS;
+          }
+        }
+
+        if (randomY < centerY + SPAWN_RADIUS &&
+          randomY > centerY - SPAWN_RADIUS)
+        {
+          if (randomOffset > 50)
+          {
+            randomY += SPAWN_RADIUS;
+          }
+          else
+          {
+            randomY -= SPAWN_RADIUS;
+          }
+        }
+
+
+        zombies.push({x : randomX,
+                      y : randomY,
+                      size : randomSize,
+                      health: health,
+                      dead : false})
       }
 
       function moveZombies()
@@ -282,7 +341,7 @@ $(document).ready(function()
         }
       }
 
-      function clearDeadZombies()
+      function cleanUpZombies()
       {
         var old_zombies = zombies.slice(0);
         zombies = [];
