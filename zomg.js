@@ -28,6 +28,7 @@ $(document).ready(function()
       var BULLET_SIZE = 5;
       var BULLET_SPEED = 15;
       var SPAWN_RADIUS = w/3;
+      var BULLET_DAMAGE = 3;
 
       //GAME OBJECTS
       var zombies;
@@ -186,15 +187,28 @@ $(document).ready(function()
         {
           for (var j=0; j < bullets.length; j++)
           {
-            if (((bullets[j].x + BULLET_SIZE/2) > zombies[i].x) ||
+            if (((bullets[j].x + BULLET_SIZE/2) > zombies[i].x) &&
                 ((bullets[j].x + BULLET_SIZE/2) < zombies[i].x + zombies[i].size/2) &&
-                ((bullets[j].y + BULLET_SIZE/2) > zombies[i].y) ||
-                ((bullets[j].y + BULLET_SIZE/2) > zombies[i].y + zombies[i].size))
+                ((bullets[j].y + BULLET_SIZE/2) > zombies[i].y) &&
+                ((bullets[j].y + BULLET_SIZE/2) < zombies[i].y + zombies[i].size))
             {
               bullets[j].hit = true;
-              zombies[i].dead = true;
+              zombieHit(zombies[i]);
             }
           }
+        }
+      }
+
+      function zombieHit(zombieIn)
+      {
+        if (zombieIn.health <= 0)
+        {
+          zombieIn.dead = true;
+          buildZombie();
+        }
+        else
+        {
+          zombieIn.health -= BULLET_DAMAGE;
         }
       }
 
@@ -239,7 +253,7 @@ $(document).ready(function()
         bullets = [];
         for (var i=0; i < old_bullets.length; i++)
         {
-          if (!old_bullets[i].hit || !outOfBounds(bullets[i]))
+          if (!old_bullets[i].hit || !outOfBounds(old_bullets[i]))
           {
             bullets.push(old_bullets[i]);
           }
@@ -303,6 +317,7 @@ $(document).ready(function()
         zombies.push({x : randomX,
                       y : randomY,
                       size : randomSize,
+                      totalHealth: health,
                       health: health,
                       dead : false})
       }
@@ -324,8 +339,6 @@ $(document).ready(function()
 
       function paintZombies()
       {
-        ctx.fillStyle = "white";
-
         for (var i=0; i < zombies.length; i++)
         {
           var xCoord = zombies[i].x;
@@ -336,7 +349,11 @@ $(document).ready(function()
 
           if (!zDead)
           {
+            ctx.fillStyle = "white";
             ctx.fillRect(xCoord, yCoord, zWidth, zHeight);
+            ctx.fillStyle = "#32cd32"
+            ctx.fillRect(xCoord, yCoord - 5,
+              zWidth*((zombies[i].health) / (zombies[i].totalHealth)), zHeight/10);
           }
         }
       }
