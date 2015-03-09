@@ -6,8 +6,8 @@ $(document).ready(function()
       canvas.height = canvas.offsetHeight;
       var h = $("#gameCanvas").height();
       var w = $("#gameCanvas").width();
-      var cX = w/2;
-      var cY = h/2;
+      var centerX = w/2;
+      var centerY = h/2;
 
       //INPUT
       var keys = {l : false,
@@ -54,8 +54,8 @@ $(document).ready(function()
       {
         if (typeof player === 'undefined')
         {
-          player = {x: cX,
-                    y: cY,
+          player = {x: centerX,
+                    y: centerY,
                     dir: "up",
                     health: 100}
         }
@@ -92,13 +92,33 @@ $(document).ready(function()
             //DOWN
             keys.d = true;
           }
-          else
+
+        });
+
+        $(document).keyup(function(e)
+        {
+          var key = e.which;
+          if(key == "37" || key == "65")
           {
-            keys.d = false;
+            //LEFT
             keys.l = false;
+          }
+          if(key == "38" || key == "87")
+          {
+            //UP
             keys.u = false;
+          }
+          if(key == "39" || key == "68")
+          {
+            //RIGHT
             keys.r = false;
           }
+          if(key == "40" || key == "83")
+          {
+            //DOWN
+            keys.d = false;
+          }
+
         });
       }
 
@@ -106,6 +126,7 @@ $(document).ready(function()
       {
         if (keys.l)
         {
+          console.log("LEFT")
           player.x -= PLAYER_SPEED;
         }
         if (keys.r)
@@ -148,12 +169,12 @@ $(document).ready(function()
         {
           var currentX = zombies[i].x;
           var currentY = zombies[i].y;
-          var xC = currentX - cX;
-          var yC = currentY - cY;
+          var xC = currentX - player.x;
+          var yC = currentY - player.y;
           var magnitude = Math.sqrt(xC*xC + yC*yC)
 
-          zombies[i].x -= ZOMBIE_SPEED*((currentX - cX)/magnitude);
-          zombies[i].y -= ZOMBIE_SPEED*((currentY - cY)/magnitude);
+          zombies[i].x -= ZOMBIE_SPEED*((xC)/magnitude);
+          zombies[i].y -= ZOMBIE_SPEED*((yC)/magnitude);
         }
       }
 
