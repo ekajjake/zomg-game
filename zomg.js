@@ -27,8 +27,9 @@ $(document).ready(function()
       var PLAYER_SPEED = 5;
       var BULLET_SIZE = 5;
       var BULLET_SPEED = 15;
-      var SPAWN_RADIUS = w/3;
+      var SPAWN_RADIUS = w/2;
       var BULLET_DAMAGE = 3;
+      var ZOMBIE_DAMAGE = .5;
 
       //GAME OBJECTS
       var zombies;
@@ -52,15 +53,18 @@ $(document).ready(function()
         ctx.fillRect(0,0,w,h);
         movePlayer();
         getInput();
-        paintZombies();
         moveZombies();
+        collidePlayer();
         shootBullets();
         collideBullets();
         paintBullets();
         moveBullets();
         cleanUpBullets();
         paintPlayer();
+        paintPlayerHealth();
+        paintZombies();
         cleanUpZombies();
+        playerDeath();
       }
 
       function initPlayer()
@@ -76,10 +80,24 @@ $(document).ready(function()
         }
       }
 
+      function playerDeath()
+      {
+        if (player.health < 0)
+        {
+          init();
+        }
+      }
+
       function paintPlayer()
       {
         ctx.fillStyle = "yellow";
         ctx.fillRect(player.x, player.y, PLAYER_WIDTH, PLAYER_HEIGHT);
+      }
+
+      function paintPlayerHealth()
+      {
+        ctx.fillStyle = "#32cd32"
+        ctx.fillRect(0, 0, w*(player.health/MAX_PLAYER_HEALTH), 5);
       }
 
       function getInput()
@@ -170,6 +188,20 @@ $(document).ready(function()
           player.y += PLAYER_SPEED;
           //player.shootDirY = 1;
           //player.shootDirX = 0;
+        }
+      }
+
+      function collidePlayer()
+      {
+        for (var i=0; i < zombies.length; i++)
+        {
+            if (((zombies[i].x + zombies[i].size/4) > player.x) &&
+                ((zombies[i].x + zombies[i].size/4) < player.x + PLAYER_WIDTH) &&
+                ((zombies[i].y + zombies[i].size/2) > player.y) &&
+                ((zombies[i].y + zombies[i].size/2) < player.y + PLAYER_HEIGHT))
+            {
+              player.health -= ZOMBIE_DAMAGE;
+            }
         }
       }
 
