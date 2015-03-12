@@ -9,6 +9,8 @@ $(document).ready(function()
       var centerX = w/2;
       var centerY = h/2;
 
+      var gameloop;
+
       //INPUT
       var keys = {l : false,
                   r : false,
@@ -25,7 +27,9 @@ $(document).ready(function()
       var PLAYER_WIDTH = 10;
       var PLAYER_HEIGHT = 20;
       var PLAYER_SPEED = 5;
-      var BULLET_SIZE = 5;
+      var BULLET_SIZE = 30;
+      var FULL_FLAME_DISTANCE = 200;
+      var MAX_FLAME_DISTANCE = 200;
       var BULLET_SPEED = 15;
       var SPAWN_RADIUS = w/2;
       var BULLET_DAMAGE = 3;
@@ -41,8 +45,8 @@ $(document).ready(function()
         initPlayer();
         initZombies();
         initBullets();
-        if (typeof gameLoop != 'undefined') clearInterval(gameLoop);
-        var gameloop = setInterval(paint, 30);
+        if (typeof gameloop != 'undefined') clearInterval(gameloop);
+        gameloop = setInterval(paint, 30);
       }
 
       init();
@@ -57,27 +61,26 @@ $(document).ready(function()
         collidePlayer();
         shootBullets();
         collideBullets();
-        paintBullets();
         moveBullets();
         cleanUpBullets();
         paintPlayer();
-        paintPlayerHealth();
         paintZombies();
+        paintBullets();
         cleanUpZombies();
         playerDeath();
+        paintPlayerHealth();
+        paintPlayerScore();
       }
 
       function initPlayer()
       {
-        if (typeof player === 'undefined')
-        {
           player = {x: centerX,
                     y: centerY,
                     shooting: false,
                     shootDirX: 1,
                     shootDirY: 0,
+                    score: 0,
                     health: 100}
-        }
       }
 
       function playerDeath()
@@ -97,7 +100,14 @@ $(document).ready(function()
       function paintPlayerHealth()
       {
         ctx.fillStyle = "#32cd32"
-        ctx.fillRect(0, 0, w*(player.health/MAX_PLAYER_HEALTH), 5);
+        ctx.fillRect(0, 0, w*(player.health/MAX_PLAYER_HEALTH), 20);
+      }
+
+      function paintPlayerScore()
+      {
+        ctx.font = "20pt Trebuchet MS"; //score
+        ctx.fillStyle = "white";
+        ctx.fillText("SCORE: " + player.score, 10, 50);
       }
 
       function getInput()
@@ -165,29 +175,32 @@ $(document).ready(function()
 
       function movePlayer()
       {
-        if (keys.l)
+        if (!outOfBounds(player))
         {
-          player.x -= PLAYER_SPEED;
-          player.shootDirX = -1;
-          player.shootDirY = 0;
-        }
-        if (keys.r)
-        {
-          player.x += PLAYER_SPEED;
-          player.shootDirX = 1;
-          player.shootDirY = 0;
-        }
-        if (keys.u)
-        {
-          player.y -= PLAYER_SPEED;
-          //player.shootDirY = -1;
-          //player.shootDirX = 0;
-        }
-        if (keys.d)
-        {
-          player.y += PLAYER_SPEED;
-          //player.shootDirY = 1;
-          //player.shootDirX = 0;
+          if (keys.l)
+          {
+            player.x -= PLAYER_SPEED;
+            player.shootDirX = -1;
+            player.shootDirY = 0;
+          }
+          if (keys.r)
+          {
+            player.x += PLAYER_SPEED;
+            player.shootDirX = 1;
+            player.shootDirY = 0;
+          }
+          if (keys.u)
+          {
+            player.y -= PLAYER_SPEED;
+            //player.shootDirY = -1;
+            //player.shootDirX = 0;
+          }
+          if (keys.d)
+          {
+            player.y += PLAYER_SPEED;
+            //player.shootDirY = 1;
+            //player.shootDirX = 0;
+          }
         }
       }
 
@@ -207,10 +220,7 @@ $(document).ready(function()
 
       function initBullets()
       {
-        if (typeof bullets === "undefined")
-        {
           bullets = [];
-        }
       }
 
       function collideBullets()
@@ -224,8 +234,11 @@ $(document).ready(function()
                 ((bullets[j].y + BULLET_SIZE/2) > zombies[i].y) &&
                 ((bullets[j].y + BULLET_SIZE/2) < zombies[i].y + zombies[i].size))
             {
-              bullets[j].hit = true;
-              zombieHit(zombies[i]);
+              if (!bullets[j].hit)
+              {
+                bullets[j].hit = true;
+                zombieHit(zombies[i]);
+              }
             }
           }
         }
@@ -237,6 +250,7 @@ $(document).ready(function()
         {
           zombieIn.dead = true;
           buildZombie();
+          player.score++;
         }
         else
         {
@@ -249,10 +263,11 @@ $(document).ready(function()
         if (player.shooting)
         {
           bullets.push({
-            x : ((player.x + PLAYER_WIDTH/2) - BULLET_SIZE/2),
-            y : (player.y + PLAYER_HEIGHT/2),
+            x : (player.x + PLAYER_WIDTH/2),
+            y : (player.y),
             xDir : player.shootDirX,
             yDir : player.shootDirY,
+            distanceFromPlayer: 0,
             hit : false
           })
         }
@@ -264,6 +279,10 @@ $(document).ready(function()
         {
           bullets[i].x += BULLET_SPEED*bullets[i].xDir;
           bullets[i].y += BULLET_SPEED*bullets[i].yDir;
+          if (bullets[i].distanceFromPlayer > MAX_FLAME_DISTANCE)
+          {
+            bullets[i].hit = true;
+          }
         }
       }
 
@@ -271,10 +290,24 @@ $(document).ready(function()
       {
         for (var i=0; i < bullets.length; i++)
         {
+          var bulletDistX = bullets[i].x - player.x;
+          var bulletDistY = bullets[i].y - player.y;
+          bullets[i].distanceFromPlayer =
+            Math.sqrt(bulletDistX*bulletDistX + bulletDistY*bulletDistY);
+          var scaledBulletSize;
+          if (bullets[i].distanceFromPlayer > FULL_FLAME_DISTANCE)
+          {
+            scaledBulletSize = BULLET_SIZE;
+          }
+          else
+          {
+            scaledBulletSize = (bullets[i].distanceFromPlayer / FULL_FLAME_DISTANCE)*
+              BULLET_SIZE;
+          }
           if (!bullets[i].hit)
           {
-            ctx.fillStyle = "gray";
-            ctx.fillRect(bullets[i].x, bullets[i].y, BULLET_SIZE, BULLET_SIZE);
+            ctx.fillStyle = "orange";
+            ctx.fillRect(bullets[i].x, bullets[i].y, scaledBulletSize, scaledBulletSize);
           }
         }
       }
@@ -294,16 +327,13 @@ $(document).ready(function()
 
       function outOfBounds(objIn)
       {
-        return (objIn.x > w || objIn.y > h || objIn.x < 0 || objIn.y < 0);
+        return (objIn.x > w - PLAYER_WIDTH || objIn.y > h - PLAYER_HEIGHT ||
+          objIn.x < 0 + PLAYER_WIDTH || objIn.y < 0 + PLAYER_HEIGHT);
       }
 
       function initZombies()
       {
-        if (typeof zombies === 'undefined')
-        {
-          zombies = [];
-        }
-
+        zombies = [];
         for (var i=0; i < AMT_ZOMBIES; i++)
         {
           buildZombie();
