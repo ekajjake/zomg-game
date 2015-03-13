@@ -1,3 +1,6 @@
+//ZOMG! Zombie chaos everywhere!
+//By Jake Kuli
+
 $(document).ready(function()
 {
     var canvas = $("#gameCanvas")[0];
@@ -147,8 +150,15 @@ $(document).ready(function()
         {
             if (player.score > 0 && player.score % 10 === 0 && !alreadySpedUp)
             {
-                zombie_speed_addition += ZOMBIE_SPEED_INTERVAL;
-                alreadySpedUp = true;
+                if ((zombie_speed_addition + ZOMBIE_SPEED) < PLAYER_SPEED)
+                {
+                    zombie_speed_addition += ZOMBIE_SPEED_INTERVAL;
+                    alreadySpedUp = true;
+                    ctx.fillStyle = "yellow";
+                    ctx.fillRect(0,0,w,h);
+                    ctx.fillStyle = "purple";
+                    ctx.fillRect(0,0,w,h);
+                }
             }
             if (player.score > 0 && player.score % 10 !== 0)
             {
@@ -166,7 +176,7 @@ $(document).ready(function()
 
         function paintPlayer()
         {
-            ctx.fillStyle = "yellow";
+            ctx.fillStyle = "blue";
             ctx.fillRect(player.x, player.y, PLAYER_WIDTH, PLAYER_HEIGHT);
         }
 
